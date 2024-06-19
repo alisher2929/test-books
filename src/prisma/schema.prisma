@@ -1,0 +1,72 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../../../../node_modules/@prisma/booksCollection-client"
+  binaryTargets   = ["native", "linux-musl", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PSQL_DATABASE_URL")
+}
+
+model Users {
+  id           String          @id(map: "PK_USERS") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username     String          @unique(map: "USERS_USERNAME")  @db.VarChar(64)
+  password     String          @db.VarChar(64)
+  email        String          @unique
+  role         UserRoles       @default(USER)
+  isActive     Boolean         @default(false)
+  refreshToken RefreshToken[]
+  codes        Codes[]
+  created_at   DateTime        @default(now()) @db.Timestamp(6)
+  updated_at   DateTime        @default(now()) @db.Timestamp(6)
+}
+
+model RefreshToken {
+  id           String         @id(map: "PK_REFRESH_TOKENS") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  value        String         @unique(map: "USERS_TOKEN")
+  user_id      String         @db.Uuid
+  users        Users          @relation(fields: [user_id], references: [id])
+  expiresAt    DateTime       @default(now()) @db.Timestamp(6)
+  created_at   DateTime       @default(now()) @db.Timestamp(6)
+  updated_at   DateTime       @default(now()) @db.Timestamp(6)
+}
+
+model Books {
+  id               String          @id(map: "PK_BOOKS") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title            String          @db.VarChar(256)
+  author           String          @db.VarChar(256)
+  publication_date DateTime        @db.Timestamp(6)
+  genres           String          @db.VarChar(128)
+  created_at       DateTime        @default(now()) @db.Timestamp(6)
+  updated_at       DateTime        @default(now()) @db.Timestamp(6)
+}
+
+model Codes {
+  id        String   @id(map: "PK_CODES") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code      String   @unique
+  user_id   String   @db.Uuid
+  users     Users    @relation(fields: [user_id], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model migrations {
+  installed_rank Int      @id(map: "__migrations_pk")
+  version        String?  @db.VarChar(50)
+  description    String   @db.VarChar(200)
+  type           String   @db.VarChar(20)
+  script         String   @db.VarChar(1000)
+  checksum       Int?
+  installed_by   String   @db.VarChar(100)
+  installed_on   DateTime @default(now()) @db.Timestamp(6)
+  execution_time Int
+  success        Boolean
+
+  @@index([success], map: "__migrations_s_idx")
+  @@map("__migrations")
+}
+
+enum UserRoles {
+  USER
+  ADMIN
+}
